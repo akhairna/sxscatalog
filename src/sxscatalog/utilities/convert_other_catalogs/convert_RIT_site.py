@@ -90,7 +90,7 @@ def fetch_RIT_catalog_data():
             tmp.write(metadata_response.text)
             tmp_path = tmp.name
             tmp.seek(0)
-            RITcatalogdata[sim_id] = Metadata.from_txt_file(tmp_path, cache_json=False)
+            RITcatalogdata[sim_id] = Metadata.from_txt_file(tmp_path, cache_json=False, ignore_invalid_lines=True)
 
             # from_txt_file() adds metadata_path, which is meaningless here.
             # _backwards_compatibility() adds number_of_orbits=NaN, which we
