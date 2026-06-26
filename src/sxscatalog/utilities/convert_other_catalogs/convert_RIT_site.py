@@ -53,6 +53,7 @@ def fetch_RIT_catalog_data():
             continue
 
         sim_id = cells[0].get_text(strip=True)
+        resolution_tag = cells[1].get_text(strip=True)
         links = cells[2].find_all("a", href=True)
 
         if len(links) != 3:
@@ -75,8 +76,6 @@ def fetch_RIT_catalog_data():
         if not all([psi_link, strain_link, metadata_link]):
             raise Exception(f"Missing expected links for simulation {sim_id}.")
 
-        RITcatalogdata[sim_id] = {}
-
         # Fetching metadata file
         metadata_response = session.get(RITcatalog_url + metadata_link["href"])
         if metadata_response.status_code != 200:
@@ -90,18 +89,30 @@ def fetch_RIT_catalog_data():
             tmp.write(metadata_response.text)
             tmp_path = tmp.name
             tmp.seek(0)
-            RITcatalogdata[sim_id] = Metadata.from_txt_file(tmp_path, cache_json=False, ignore_invalid_lines=True)
+
+            if sim_id not in RITcatalogdata:
+                RITcatalogdata[sim_id] = {"resolution_tag": "n000", "files": {}}
+
+            # resolution_tags are string of the form nxxx. We remove the prefix
+            # n for comparison.
+            current_res  = float(RITcatalogdata[sim_id]["resolution_tag"].lstrip("n"))
+            incoming_res = float(resolution_tag.lstrip("n"))
+
+            if incoming_res > current_res:
+                low_res_files = RITcatalogdata[sim_id]["files"]
 
             # from_txt_file() adds metadata_path, which is meaningless here.
             # _backwards_compatibility() adds number_of_orbits=NaN, which we
             # don't want. Throw away both of these keys.
-            RITcatalogdata[sim_id].pop("metadata_path", None)
+                RITcatalogdata[sim_id] = Metadata.from_txt_file(tmp_path, cache_json=False, ignore_invalid_lines=True)
+                RITcatalogdata[sim_id].pop("metadata_path", None)
+                RITcatalogdata[sim_id]["files"] = low_res_files
 
-        RITcatalogdata[sim_id]["extrap_psi4_url"] = RITcatalog_url + psi_link["href"]
-        RITcatalogdata[sim_id]["extrap_strain_url"] = (
-            RITcatalog_url + strain_link["href"]
-        )
-        RITcatalogdata[sim_id]["metadata_url"] = RITcatalog_url + metadata_link["href"]
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_psi4_url"] = {"link": RITcatalog_url + psi_link["href"] }
+
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_strain_url"] = {"link": RITcatalog_url + strain_link["href"] }
+
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:metadata_url"] = {"link": RITcatalog_url + metadata_link["href"] }
 
     return RITcatalogdata
 
