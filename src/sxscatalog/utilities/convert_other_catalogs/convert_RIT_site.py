@@ -104,11 +104,11 @@ def fetch_RIT_catalog_data():
         RITcatalogdata[sim_id]["resolution_tags"].append(resolution_tag)
 
         RITcatalogdata[sim_id]["files"] = res_files
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_psi4_url"] = {"link": RITcatalog_url + psi_link["href"] }
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_psi4.h5"] = {"link": RITcatalog_url + psi_link["href"] }
 
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_strain_url"] = {"link": RITcatalog_url + strain_link["href"] }
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_strain.h5"] = {"link": RITcatalog_url + strain_link["href"] }
 
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:metadata_url"] = {"link": RITcatalog_url + metadata_link["href"] }
+        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:metadata.txt"] = {"link": RITcatalog_url + metadata_link["href"] }
 
     return RITcatalogdata
 
