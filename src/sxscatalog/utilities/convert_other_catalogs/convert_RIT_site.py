@@ -78,7 +78,12 @@ def fetch_RIT_catalog_data():
 
         # Get the files url and resolution tags for multiple resolutions.
         res_files = RITcatalogdata[sim_id]["files"] if sim_id in RITcatalogdata else {}
+        res_files[f"{resolution_tag}:extrap_psi4.tar.gz"] = {"link": RITcatalog_url + psi_link["href"] }
+        res_files[f"{resolution_tag}:extrap_strain.h5"] = {"link": RITcatalog_url + strain_link["href"] }
+        res_files[f"{resolution_tag}:metadata.txt"] = {"link": RITcatalog_url + metadata_link["href"] }
+
         res_tags = RITcatalogdata[sim_id]["resolution_tags"] if sim_id in RITcatalogdata else []
+        res_tags.append(resolution_tag)
 
         # Fetching metadata file
         metadata_response = session.get(RITcatalog_url + metadata_link["href"])
@@ -101,14 +106,8 @@ def fetch_RIT_catalog_data():
             RITcatalogdata[sim_id].pop("metadata_path", None)
 
         RITcatalogdata[sim_id]["resolution_tags"] = res_tags
-        RITcatalogdata[sim_id]["resolution_tags"].append(resolution_tag)
 
         RITcatalogdata[sim_id]["files"] = res_files
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_psi4.h5"] = {"link": RITcatalog_url + psi_link["href"] }
-
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:extrap_strain.h5"] = {"link": RITcatalog_url + strain_link["href"] }
-
-        RITcatalogdata[sim_id]["files"][f"{resolution_tag}:metadata.txt"] = {"link": RITcatalog_url + metadata_link["href"] }
 
     return RITcatalogdata
 
