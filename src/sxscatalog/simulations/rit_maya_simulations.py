@@ -21,14 +21,15 @@ def promote_z_3vec(x):
         v = np.full(3, np.nan)
     return v
 
-def _add_parameters_to_RIT(simulations_df):
-    """A helper function to add standard parameters that aren't included in the
-    default metadata fields. We add 'relaxed_chi1_perp', 'relaxed_chi2_perp',
+def _generate_derived_fields_for_RIT(metadata):
+    """A helper function to derive standard parameters that aren't included in
+    the default metadata fields. We add 'relaxed_chi1_perp', relaxed_chi2_perp',
     and 'relaxed_chi_eff'.
 
     Parameters
     ----------
-    simulations_df : pandas.Series
+    metadata : sxscatalog.metadata.Metadata
+        The input metadata dictionary for RIT simulation.
 
     Returns
     -------
@@ -36,11 +37,11 @@ def _add_parameters_to_RIT(simulations_df):
         A tuple of `relaxed_chi_perp`, `relaxed_chi2_perp` and `relaxed_chi_eff`.
     """
 
-    m1 = simulations_df['relaxed_mass1']
-    m2 = simulations_df['relaxed_mass2']
-    chi1 = simulations_df['relaxed_chi1']
-    chi2 = simulations_df['relaxed_chi2']
-    L = simulations_df['relaxed_LNhat']
+    m1 = metadata['relaxed_mass1']
+    m2 = metadata['relaxed_mass2']
+    chi1 = metadata['relaxed_chi1']
+    chi2 = metadata['relaxed_chi2']
+    L = metadata['relaxed_LNhat']
 
     chi1L = np.dot(chi1, L)
     chi2L = np.dot(chi2, L)
@@ -49,6 +50,33 @@ def _add_parameters_to_RIT(simulations_df):
     relaxed_chi_eff = (m1*chi1L + m2*chi2L) / (m1 + m2)
 
     return relaxed_chi1_perp, relaxed_chi2_perp, relaxed_chi_eff
+
+def _add_parameters_to_RIT(metadata):
+    """A helper function to promote spin vectors from z components, and add
+    standard parameters to the metadata.
+
+    Parameters
+    ----------
+    metadata : sxscatalog.metadata.Metadata
+        The input metadata dictionary for any RIT simulation.
+
+    Returns
+    -------
+    metadata : sxscatalog.metadata.Metadata
+        Metadata dictionary with additional derived fields.
+    """
+    for key in ["relaxed_chi1", "relaxed_chi2",
+                "initial_bh_chi1","initial_bh_chi2"]:
+        if key not in metadata:
+            metadata[key] = promote_z_3vec(metadata.pop(key + "z"))
+
+    relaxed_chi1_perp, relaxed_chi2_perp, relaxed_chi_eff = _generate_derived_fields_for_RIT(metadata)
+
+    metadata['relaxed_chi1_perp'] = relaxed_chi1_perp
+    metadata['relaxed_chi2_perp'] = relaxed_chi2_perp
+    metadata['relaxed_chi_eff'] = relaxed_chi_eff
+
+    return metadata
 
 class RITSimulations(Simulations):
     """Interface to the catalog of RIT simulations
@@ -240,6 +268,10 @@ class RITSimulations(Simulations):
         sims.__file__ = str(cache_path)
         sims.tag = tag
 
+        for k, v in sims.items():
+            metadata = _add_parameters_to_RIT(v)
+            sims[k] = metadata
+
         if not ignore_cached:
             cls._simulations = sims
         return sims
@@ -284,21 +316,6 @@ class RITSimulations(Simulations):
             return self._dataframe
 
         simulations = pd.DataFrame.from_dict(self, orient="index")
-
-        # Convert just-z-components to 3-vectors
-        for col in [
-            "relaxed_chi1",
-            "relaxed_chi2",
-            "initial_bh_chi1",
-            "initial_bh_chi2",
-        ]:
-            simulations[col] = simulations[col].fillna(
-                simulations[col + "z"].map(promote_z_3vec)
-            )
-
-        simulations[['relaxed_chi1_perp', 'relaxed_chi2_perp', 'relaxed_chi_eff']] = simulations.apply(
-            _add_parameters_to_RIT, axis=1, result_type='expand'
-            )
 
         sims_df = pd.DataFrame(pd.concat((
             get(simulations, "relaxed_mass_ratio_1_over_2", floater),
