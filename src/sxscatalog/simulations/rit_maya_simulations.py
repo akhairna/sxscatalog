@@ -268,8 +268,9 @@ class RITSimulations(Simulations):
         sims.__file__ = str(cache_path)
         sims.tag = tag
 
-        for _, v in sims.items():
-            _add_parameters_to_RIT(v)
+        for k, v in sims.items():
+            sims[k] = _add_parameters_to_RIT(v)
+
         if not ignore_cached:
             cls._simulations = sims
         return sims
